@@ -1,4 +1,7 @@
 # LoRa-Box
+
+Just a script to setup your own LoRaWAN network.
+
 ## CONTENTS OF THIS FILE
 
 1. [Introduction](#introduction)
