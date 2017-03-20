@@ -47,4 +47,4 @@ There aren't any FAQs yet.
 ### 7. Maintainers <a name="maintainers"></a>
 
 Current maintainer:
-	* [Roger Nicolàs](https://github.com/rnicolas/)
+* [Roger Nicolàs](https://github.com/rnicolas/)
