@@ -14,12 +14,12 @@ echo "LoRa Box installer"
 echo
 # Update the gateway installer to the correct branch
 echo "Updating installer files..."
+sudo apt-get install git
 OLD_HEAD=$(git rev-parse HEAD)
 git fetch
 git checkout
 git pull
 NEW_HEAD=$(git rev-parse HEAD)
-
 if [[ $OLD_HEAD != $NEW_HEAD ]]; then
     echo "New installer found. Restarting process..."
     exec "./install.sh" "$VERSION"
@@ -40,7 +40,7 @@ echo
 echo "Activating SPI port on Raspberry PI"
 
 pushd /boot
-sed -i -e 's/#dtparam=spi=on/dtparam=spi=on/g' ./config.txt
+sed -i -e 's/#dtparam=spi=on/dtparam=spi=on/g' ./cdebianonfig.txt
 popd
 
 echo "Adding a script to power off RPi using pin 26"
@@ -178,7 +178,7 @@ echo "Installing Mosquitto MQTT server"
 
 wget http://repo.mosquitto.org/debian/mosquitto-repo.gpg.key
 apt-key add mosquitto-repo.gpg.key
-rm mosquitto-repo.gpg.key
+rm mosquitto-repo.gpg.key*
 pushd /etc/apt/sources.list.d/
 wget http://repo.mosquitto.org/debian/mosquitto-jessie.list
 popd
@@ -212,8 +212,8 @@ apt-get install -y postgresql
 echo "Type here the password for postgresql database ['dbpassword']"
 read DB_PASSWORD
 if [[ $DB_PASSWORD == "" ]]; then DB_PASSWORD='dbpassword'; fi
-sudo -u postgres psql -c "create role loraserver with login password '$DB_PASSWORD';"
-sudo -u postgres psql -c "create database loraserver with owner loraserver;"
+-u postgres psql -c "create role loraserver with login password '$DB_PASSWORD';"
+-u postgres psql -c "create database loraserver with owner loraserver;"
 apt-get install -y lora-app-server
 
 pushd /etc/default/
