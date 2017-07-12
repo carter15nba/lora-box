@@ -14,7 +14,6 @@ echo "LoRa Box installer"
 echo
 # Update the gateway installer to the correct branch
 echo "Updating installer files..."
-sudo apt-get install git
 OLD_HEAD=$(git rev-parse HEAD)
 git fetch
 git checkout
@@ -137,102 +136,6 @@ else
     git pull
     git reset --hard
 fi
-
 make
 
 popd
-
-# Symlink packet forwarder
-if [ ! -d bin ]; then mkdir bin; fi
-if [ -f ./bin/lora_pkt_fwd ]; then rm ./bin/lora_pkt_fwd; fi
-ln -s $INSTALL_DIR/packet_forwarder/lora_pkt_fwd/lora_pkt_fwd ./bin/lora_pkt_fwd
-cp -f ./packet_forwarder/lora_pkt_fwd/global_conf.json ./bin/global_conf.json
-
-LOCAL_CONFIG_FILE=$INSTALL_DIR/bin/local_conf.json
-
-# Remove old config file
-if [ -e $LOCAL_CONFIG_FILE ]
-then
-	rm $LOCAL_CONFIG_FILE
-fi
-
-printf "       Server Address ['localhost']:"
-read NEW_SERVER
-if [[ $NEW_SERVER == "" ]]; then NEW_SERVER="localhost"; fi
-
-echo -e "{\n\t\"gateway_conf\": {\n\t\t\"gateway_ID\": \"$GATEWAY_EUI\",\n\t\t\"server_address\": \"$NEW_SERVER\",\n\t\t\"serv_port_up\": 1700,\n\t\t\"serv_port_down\": 1700,\n\t\t\"ref_latitude\": $GATEWAY_LAT,\n\t\t\"ref_longitude\": $GATEWAY_LON,\n\t\t\"ref_altitude\": $GATEWAY_ALT,\n\t\t\"contact_email\": \"$GATEWAY_EMAIL\",\n\t\t\"description\": \"$GATEWAY_NAME\" \n\t}\n}" >$LOCAL_CONFIG_FILE
-
-popd
-
-echo "Gateway EUI is: $GATEWAY_EUI"
-echo "The hostname is: $NEW_HOSTNAME"
-echo "The Gateway is pointing to: $NEW_SERVER"
-echo
-echo "Installation completed."
-
-# Start packet forwarder as a service
-cp ./start.sh $INSTALL_DIR/bin/
-pushd $INSTALL_DIR/bin/
-chmod +x start.sh
-popd
-cp ./lora-box.service /etc/systemd/system/
-systemctl enable lora-box.service
-
-echo "Installing Mosquitto MQTT server"
-
-wget http://repo.mosquitto.org/debian/mosquitto-repo.gpg.key
-apt-key add mosquitto-repo.gpg.key
-rm mosquitto-repo.gpg.key*
-pushd /etc/apt/sources.list.d/
-if [ ! -e mosquitto-jessie.list]
-then
-	wget http://repo.mosquitto.org/debian/mosquitto-jessie.list;
-fi
-popd
-
-apt-get update
-apt-get install -y mosquitto
-
-echo "Installing LoRa Gateway Bridge"
-
-DISTRIB_ID=debian
-DISTRIB_CODENAME=jessie
-
-apt-get install -y apt-transport-https
-
-SOURCE_LIST=/etc/apt/sources.list.d/loraserver.list
-#check if source list exists
-if [ ! -e $SOURCE_LIST ]
-then
-	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1CE2AFD36DBCCA00
-	echo "deb https://repos.loraserver.io/${DISTRIB_ID} ${DISTRIB_CODENAME} testing" | tee $SOURCE_LIST
-fi
-
-apt-get update
-
-apt-get install -y lora-gateway-bridge
-
-echo "Installing LoRaWAN Server"
-
-apt-get install -y redis-server
-apt-get install -y loraserver
-
-echo "Installing LoRa Application Server"
-
-apt-get install -y postgresql
-
-#psql script to create user and database.
-echo "Type here the password for postgresql database ['dbpassword']"
-read DB_PASSWORD
-if [[ $DB_PASSWORD == "" ]]; then DB_PASSWORD='dbpassword'; fi
-sudo -u postgres psql -c "create role loraserver with login password '$DB_PASSWORD';"
-sudo -u postgres psql -c "create database loraserver with owner loraserver;"
-apt-get install -y lora-app-server
-
-pushd /etc/default/
-sed -i -e 's/POSTGRES_DSN=postgres:\/\/localhost/POSTGRES_DSN=postgres:\/\/loraserver:'"$DB_PASSWORD"'@localhost/g' ./lora-app-server
-popd
-
-echo "The system will reboot in 5 seconds..."
-sleep 5
-shutdown -r now
